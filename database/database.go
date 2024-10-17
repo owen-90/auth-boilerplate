@@ -2,7 +2,10 @@ package database
 
 import (
 	"auth-boilerplate/utils"
+	"crypto/aes"
+	"crypto/cipher"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
@@ -24,8 +27,36 @@ token VARCHAR(255) UNIQUE NOT NULL,
 FOREIGN KEY (email) REFERENCES users (email)
 );`
 )
+
 // Global DB instance
 var db *sql.DB
+
+func decrypt(encryptedText, key string) (string, error) {
+	data, err := base64.StdEncoding.DecodeString(encryptedText)
+	if err != nil {
+		return "", err
+	}
+
+	block, err := aes.NewCipher([]byte(key))
+	if err != nil {
+		return "", nil
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+
+	nonceSize := gcm.NonceSize()
+	nonce, cipherText := data[:nonceSize], data[nonceSize:]
+
+	plainText, err := gcm.Open(nil, nonce, cipherText, nil)
+	if err != nil {
+		return "", err
+	}
+
+	return string(plainText), nil
+}
 
 // Connect to the database and assign the connection to the global `db` variable
 func Connect(user, password, dsn string) error {
@@ -50,22 +81,22 @@ func Init() error {
 
 	// Read credentials from environment variables
 	user := os.Getenv("DB_USER")
-	if user == "" {
-		return fmt.Errorf("missing environment variable DB_USER")
-	}
-
 	password := os.Getenv("DB_PASSWORD")
-	if password == "" {
-		return fmt.Errorf("missing environment variable DB_PASSWORD")
+	dsn := os.Getenv("DB_DSN") // Data source name := database name
+	encryptionKey := os.Getenv("ENCRYPTION_KEY")
+
+	if user == "" || password == "" || dsn == "" || encryptionKey == "" {
+		return fmt.Errorf("missing required environment variables")
 	}
 
-	dsn := os.Getenv("DB_DSN") // Data source name := database name
-	if dsn == "" {
-		return fmt.Errorf("missing environment variable DB_DSN")
+	// Decrypt the password
+	password, err := decrypt(password, encryptionKey)
+	if err != nil {
+		return fmt.Errorf("error decrypting password: %w", err)
 	}
 
 	// Connect to the database
-	err := Connect(user, password, dsn)
+	err = Connect(user, password, dsn)
 	if err != nil {
 		return fmt.Errorf("error connecting to database: %w", err)
 	}
