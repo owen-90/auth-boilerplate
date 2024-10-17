@@ -42,8 +42,8 @@ func main() {
 	http.HandleFunc("/test", controllers.HomeHandler)
 
 	// Start the server
-	fmt.Println("Starting server on :8025...")
-	if err := http.ListenAndServe(":8025", nil); err != nil {
+	fmt.Println("Starting server on :8027...")
+	if err := http.ListenAndServe(":8027", nil); err != nil {
 		fmt.Println("Failed to start server:", err)
 	}
 }

@@ -1,6 +1,7 @@
 package database
 
 import (
+	"auth-boilerplate/utils"
 	"database/sql"
 	"fmt"
 	"log"
@@ -45,7 +46,7 @@ func Connect(user, password, dsn string) error {
 }
 
 func Init() error {
-	//utils.ReadENV()
+	utils.ReadENV()
 
 	// Read credentials from environment variables
 	user := os.Getenv("DB_USER")
