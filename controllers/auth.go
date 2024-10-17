@@ -59,8 +59,15 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Insert user login details
-	_, err = database.DB().Exec("INSERT INTO login (email, username, password) VALUES (?, ?, ?)", user.Email,
-		user.Username, user.Password)
+	lstmt, err := database.DB().Prepare("INSERT INTO login (email, username, password) VALUES (?, ?, ?)")
+	if err != nil {
+		utils.HandleError(w, http.StatusInternalServerError, "error preparing login details insertion statement")
+		return
+	}
+	// Close prepared statement
+	defer lstmt.Close()
+
+	_, err = database.DB().Exec(user.Email, user.Username, user.Password)
 	if err != nil {
 		utils.HandleError(w, http.StatusInternalServerError, "error creating user login details")
 		return
